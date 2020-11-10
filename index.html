@@ -1,0 +1,204 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Deposit Plan Case">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script> 
+    
+    <script defer src="https://pro.fontawesome.com/releases/v5.10.0/js/all.js" integrity="sha384-G/ZR3ntz68JZrH4pfPJyRbjW+c0+ojii5f+GYiYwldYU69A+Ejat6yIfLSxljXxD" crossorigin="anonymous"></script>
+
+    <style>
+      .c-spacing {
+        margin:10px;
+      }
+    </style>
+  </head>
+  <body style="background-color: rgb(7, 35, 64);">
+    <div class="container" style="margin-top:2em;">
+      <h3 style="color:rgb(246,246,246)"><s>StashAway</s> Deposit Plan Case</h3>
+      <br>
+      <div class="alert alert-info" role="alert">
+        You may add/remove portfolios of this customer in <code>./portfolio.json</code> contained in this <i>repl</i> directory.
+      </div>
+      <br>
+      <div class="row">        
+        <div class="col">
+         <div class="card">
+            <div class="card-header">              
+              <i class="fas fa-keyboard"></i> <code>Input</code>
+            </div>
+            <div class="card-body">
+              <form onsubmit="return doDeposit(event)">
+                <h5>Set One-Time Plan</h5>
+                <div class="card">
+                  <div class="card-body" id="onetime">                    
+                    <!-- to be built -->
+                  </div>
+                </div>                
+                <br>
+
+                <h5>Set Monthly Plan</h5>
+                <div class="card">
+                  <div class="card-body" id="monthly">                    
+                    <!-- to be built -->
+                  </div>
+                </div>
+                <br>
+
+                <div class="form-group">                  
+                  <label for=""><h5>Fund Deposits</h5></label>
+                  <textarea required class="form-control" id="fund_deposit" name="fund_deposit" placeholder="Example: 100.00; 8888.69; 500.28" aria-describedby="depositHelp"></textarea>
+                  <small id="depositHelp" class="form-text text-muted">Separate each fund deposit with a semicolon ';'</small>
+                </div>
+                <button id="btnSubmit" type="submit" class="btn btn-primary">
+                  Submit
+                </button>
+              </form>              
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card">
+            <div class="card-header">              
+              <i class="fas fa-server"></i> <code>Output</code>
+            </div>
+            <div class="card-body">
+              <h5>Portfolio Allocation:</h5>
+              <div class="d-flex justify-content-center">
+                <br>
+                <div id="resultSpinner" style="display:none" class="spinner-border text-primary" role="status"></div>                
+              </div>
+              <div id="portfolio_allocation" class="list-group"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      const url = "https://NotStashAwayDepositPlanCase.alfonsokhiew404.repl.co"
+      var portfolio
+      fetch(url + "/portfolio")
+        .then(res => res.json())
+        .then(data => {
+          portfolio = data
+          buildForm()
+        })
+        .catch(console.error)
+
+      const buildForm = function(){
+        let divs = ['onetime', 'monthly']
+        divs.forEach( divName => {
+          let container = document.getElementById(divName)
+
+          let porfolioKeys = Object.keys(portfolio)
+          porfolioKeys.forEach((key) => {
+            let formGroup = document.createElement("div")                        
+            formGroup.className = "form-group"            
+            container.appendChild(formGroup)
+
+            let child = document.createElement("label")
+            child.innerHTML = portfolio[key].name
+            formGroup.appendChild(child)
+
+            let input  = document.createElement("input")
+            input.type = "number"
+            input.id   = divName + key
+            input.name = divName + key            
+            input.step = 0.01
+            input.min  = 0
+            input.max  = 999999.99
+            input.placeholder = "0.00"
+            input.className   = "form-control"
+            formGroup.appendChild(input)
+          })
+        })
+      }
+
+      const doDeposit = function(e){
+        e.preventDefault()
+        let btnSubmit = document.getElementById("btnSubmit")
+        let resultSpinner = document.getElementById("resultSpinner")
+        btnSubmit.disabled = true
+        resultSpinner.style.display = "block"
+
+        let types = ['onetime', 'monthly']
+        let data = {};
+        types.forEach( type => {
+          data[type] = {}
+          let porfolioKeys = Object.keys(portfolio)
+          porfolioKeys.forEach((key) => {            
+            let val = document.getElementById(type+key).value
+            val = (val == '') ? 0 : val
+            data[type][key] = {name: portfolio[key].name, plan_value: val}
+          })
+        })
+
+        let valDeposit = document.getElementById("fund_deposit").value.replace(/[\s,]/gm, '')
+        data['fund_deposit'] = valDeposit.split(';')
+        
+        fetch(url + "/deposit", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => {
+          buildOutput(data)
+        })
+        .catch((err) => {
+          console.error(err);
+        })
+        .finally(() => {
+          btnSubmit.disabled = false
+          resultSpinner.style.display = "none"
+        })
+      }
+
+      const buildOutput = function(data) {
+        console.log(data);
+        let portoflioDiv = document.getElementById("portfolio_allocation")
+        document.getElementById("portfolio_allocation").innerHTML = ""
+
+        let pkeys = Object.keys(data.portfolio)
+        pkeys.forEach(key => {
+          let listGroupItem = document.createElement("div")
+          listGroupItem.className = "list-group-item"
+          portoflioDiv.appendChild(listGroupItem)
+          let h5 = document.createElement("h5")
+          h5.className = "text-muted"
+          h5.innerHTML = data.portfolio[key].name
+          listGroupItem.appendChild(h5)
+          let p = document.createElement("p")
+          p.className = "float-right"
+          p.innerHTML = `\$ ${data.portfolio[key].value}`
+          listGroupItem.appendChild(p)
+        })
+
+        if(data.skip_count > 0){
+          let p = document.createElement("p")
+          p.className = "text-danger"
+          p.innerHTML = `<br> ${data.skipped}`
+          portoflioDiv.appendChild(p)
+        }
+
+        if(data.message.length > 0){
+          let pp = document.createElement("h6")
+          pp.className = "text-secondary"
+          pp.innerHTML = "<br>Message below only for deposits are not in exact amount as specified in deposit plans."
+          portoflioDiv.appendChild(pp)
+          data.message.forEach(msg => {
+            let p = document.createElement("p")
+            p.className = "text-success"
+            p.innerHTML = `<li>${msg}</li>`
+            portoflioDiv.appendChild(p)
+          })
+        }
+      }
+    </script>
+  </body>
+</html>2

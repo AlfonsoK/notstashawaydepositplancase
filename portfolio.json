@@ -1,0 +1,14 @@
+{  
+  "0": {
+    "name": "Core 12% Risk",
+    "value": 0
+  },  
+  "whichever key you like": {
+    "name": "High Risk 36%",
+    "value": 0
+  },
+  "1": {
+    "name": "SimplePlan",
+    "value": 0
+  }
+}
